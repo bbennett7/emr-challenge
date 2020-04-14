@@ -4,14 +4,14 @@ class CreateMembers < ActiveRecord::Migration[6.0]
       t.integer :policy_id
       t.integer :group_id
       t.integer :plan_id
-      t.integer :provider_id
-      t.integer :member_number
-      t.string :first_name
-      t.string :last_name
+      t.integer :provider_id, null: false
+      t.integer :member_number, null: false
+      t.string :first_name, null: false
+      t.string :last_name, null: false
       t.string :ssn_encrypted
       t.timestamps :date_of_birth
       t.boolean :sex, default:  null
-      t.integer :member_number
+      t.integer :member_number, null: false
       t.string :street_address
       t.string :city
       t.string :state 
