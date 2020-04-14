@@ -26,3 +26,4 @@ Things you may want to cover:
 
 1. Clone repo
 2. Run `bundle install` in the command line
+3. rake eslint:run_all
