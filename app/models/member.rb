@@ -8,4 +8,5 @@ class Member < ApplicationRecord
   validates :member_number, presence: { message: 'cannot be blank.' }
   validates :first_name, presence: { message: 'cannot be blank.' }
   validates :last_name, presence: { message: 'cannot be blank.' }
+  validates :ssn_encrypted, uniqueness: { message: 'already exists in the database.'}
 end
