@@ -47,6 +47,7 @@ class WebhookController < ApplicationController
     provider = @payload["Company"]
     provider_address = provider["Address"]
     member = @payload["Insured"]
+    member_address = member["Address"]
 
     # get provider data
     @provider_data = { provider_name: provider["Name"], street_address: provider_address["StreetAddress"], city: provider_address["City"], state: provider_address["State"], zip: provider_address["Zip"], county: provider_address["County"], country: provider_address["Country"], phone_number: provider["PhoneNumber"] }
@@ -55,10 +56,15 @@ class WebhookController < ApplicationController
     @plan_data = { provider_id: nil, plan_name: plan["Name"], id_type: plan["IDType"], plan_type: plan["Type"], provider_plan_id: plan["ID"]}
     
     # get group data
+    @group_data = { provider_id: nil, plan_id: nil, group_number: @payload["GroupNumber"], group_name: @payload["GroupName"] }
 
-    # get policy data 
+    # get policy data
+    # manipulate effective date and expiration date
+    @policy_data = { group_id: nil, effective_date: @payload["EffectiveDate"].to_datetime, expiration_date: @payload["ExpirationDate"].to_datetime, policy_number: @payload["PolicyNumber"] }
 
     # get member data
+    # encrypt SSN, manipulate DOB
+    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: @payload["MemberNumber"], first_name: member["FirstName"], last_name: member["LastName"], ssn_encrypted: nil, date_of_birth: member["DOB"], sex: member["Sex"], street_address: member_address["StreetAddress"], city: member_address["City"], state: member_address["State"], zip: member_address["Zip"], county: member_address["County"], country: member_address["Country"]}
 
   end
 
