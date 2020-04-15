@@ -58,14 +58,16 @@ class WebhookController < ApplicationController
     # get group data
     @group_data = { provider_id: nil, plan_id: nil, group_number: @payload["GroupNumber"], group_name: @payload["GroupName"] }
 
-    # get policy data
-    # manipulate effective date and expiration date
-    @policy_data = { group_id: nil, effective_date: @payload["EffectiveDate"].to_datetime, expiration_date: @payload["ExpirationDate"].to_datetime, policy_number: @payload["PolicyNumber"] }
+    # get policy data, manipulate effective date and expiration date
+    effective_date = @payload["EffectiveDate"].nil? ? nil : @payload["EffectiveDate"].to_datetime
+    expiration_date = @payload["ExpirationDate"].nil? ? nil : @payload["ExpirationDate"].to_datetime
 
-    # get member data
-    # encrypt SSN, manipulate DOB
-    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: @payload["MemberNumber"], first_name: member["FirstName"], last_name: member["LastName"], ssn_encrypted: nil, date_of_birth: member["DOB"], sex: member["Sex"], street_address: member_address["StreetAddress"], city: member_address["City"], state: member_address["State"], zip: member_address["Zip"], county: member_address["County"], country: member_address["Country"]}
+    @policy_data = { group_id: nil, effective_date: effective_date, expiration_date: expiration_date, policy_number: @payload["PolicyNumber"] }
 
+    # get member data, encrypt SSN (coming), manipulate DOB
+    dob = member["DOB"].nil? ? nil : member["DOB"].to_datetime
+
+    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: @payload["MemberNumber"], first_name: member["FirstName"], last_name: member["LastName"], ssn_encrypted: member["SSN"], date_of_birth: dob, sex: member["Sex"], street_address: member_address["StreetAddress"], city: member_address["City"], state: member_address["State"], zip: member_address["Zip"], county: member_address["County"], country: member_address["Country"]}
   end
 
   def create_or_update_provider
