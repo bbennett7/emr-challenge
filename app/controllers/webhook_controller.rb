@@ -5,6 +5,17 @@ class WebhookController < ApplicationController
     # byebug
     source = request.headers['Source']
     @body = request.body.first
+    
+    # default structure of objects to build for db persistence 
+    @provider_data = { provider_name: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil, phone_number: nil }
+
+    @plan_data = { provider_id: nil, plan_name: nil, id_type: nil, plan_type: nil, provider_plan_id: nil}
+
+    @group_data = { provider_id: nil, plan_id: nil, group_number: nil, group_name: nil }
+
+    @policy_data = { group_id: nil, effective_date: nil, expiration_date: nil, policy_number: nil }
+
+    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: nil, first_name: nil, last_name: nil, ssn_encrypted: nil, date_of_birth: nil, sex: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil}
 
     # have each of those functs all call the same one funct to go to the database
 
@@ -19,6 +30,8 @@ class WebhookController < ApplicationController
         puts "providence healthcare"
       when "abm healthcare"
         puts "abm healthcare"
+      else
+        # persists to a redis database of pending data
     end
 
     # respond_to do |format|
