@@ -4,8 +4,8 @@ class WebhookController < ApplicationController
   def gateway
     # byebug
     source = request.headers['Source']
-    @body = request.body.first
-    
+    @payload = JSON.parse(request.body.string)
+
     # default structure of objects to build for db persistence 
     @provider_data = { provider_name: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil, phone_number: nil }
 
@@ -16,8 +16,6 @@ class WebhookController < ApplicationController
     @policy_data = { group_id: nil, effective_date: nil, expiration_date: nil, policy_number: nil }
 
     @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: nil, first_name: nil, last_name: nil, ssn_encrypted: nil, date_of_birth: nil, sex: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil}
-
-    # have each of those functs all call the same one funct to go to the database
 
     # switch case to determine where post request is coming from
     # call handler based on source
@@ -34,6 +32,9 @@ class WebhookController < ApplicationController
         # persists to a redis database of pending data
     end
 
+    # Will need to handle getting relations - like provider ID for plan's provider_id
+    # persists variables to db after being assigned correct values, do work to account for typos, mismatches etc
+
     # respond_to do |format|
     #   msg = { :status => "ok", :message => "Success!" }
     #   format.json { render json: request}
@@ -42,10 +43,17 @@ class WebhookController < ApplicationController
 
   def handle_redox_event
     puts "handling redox event"
+    plan = @payload["Plan"]
+    provider = @payload["Company"]
+    provider_address = provider["Address"]
+    member = @payload["Insured"]
+
     # get provider data
+    @provider_data = { provider_name: provider["Name"], street_address: provider_address["StreetAddress"], city: provider_address["City"], state: provider_address["State"], zip: provider_address["Zip"], county: provider_address["County"], country: provider_address["Country"], phone_number: provider["PhoneNumber"] }
 
     # get plan data
-
+    @plan_data = { provider_id: nil, plan_name: plan["Name"], id_type: plan["IDType"], plan_type: plan["Type"], provider_plan_id: plan["ID"]}
+    
     # get group data
 
     # get policy data 
