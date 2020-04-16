@@ -28,12 +28,15 @@ Things you may want to cover:
 2. Run `bundle install` in the command line
 3. rake eslint:run_all
 
-
 WEBHOOK FLOW:
 1. Post requests should be sent to /webhook-gateway
 2. Requests must include a "Source" header with the name of the source (Redox, etc.)
 3. /webhook-gateway routes to gateway method --> gateway calls handler for source --> handler manipulates data to uniform structure for creation methods --> creation methods find or create provider, plan, group, policy and member
 
+ADDING NEW SOURCES:
+1. Add source to gateway switch statement
+2. Create a handle_source_event function that manipulates payload into uniform structure (refer to comment: default structure of objects to build for db persistence)
+3. Call handler in new switch case
 
 GIVEN MORE TIME, I WOULD:
 - Add in an encryption/decryption mechanism for member SSN
