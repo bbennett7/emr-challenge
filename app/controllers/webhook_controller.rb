@@ -41,10 +41,16 @@ class WebhookController < ApplicationController
     @new_policy = create_or_get_policy
     
     byebug 
-    # respond_to do |format|
-    #   msg = { :status => "ok", :message => "Success!" }
-    #   format.json { render json: request}
-    # end
+
+    respond_to do |format|
+      res = { :status => 200, :data => {
+        :provider =>  @new_provider,
+        :plan => @new_plan,
+        :group => @new_group,
+        :policy => @new_policy
+      } }
+      format.json { render json: res}
+    end
   end
 
   # returns id of matching object, accounting for nicknames and typos
