@@ -33,7 +33,7 @@ class WebhookController < ApplicationController
     end
 
     # Will need to handle getting relations - like provider ID for plan's provider_id
-    # persists variables to db after being assigned correct values, do work to account for typos, mismatches etc
+    @new_provider = create_or_get_provider
 
     # respond_to do |format|
     #   msg = { :status => "ok", :message => "Success!" }
@@ -41,37 +41,48 @@ class WebhookController < ApplicationController
     # end
   end
 
-  def handle_redox_event
-    puts "handling redox event"
-    plan = @payload["Plan"]
-    provider = @payload["Company"]
-    provider_address = provider["Address"]
-    member = @payload["Insured"]
-    member_address = member["Address"]
+  # returns id of similar object, accounting for nicknames and typos
+  def get_provider_with_spellcheck(term, table, field, model)
+    match_id = ActiveRecord::Base.connection.execute("SELECT id FROM #{table} WHERE #{field} ILIKE '%#{term}' OR #{field} ILIKE '#{term}%' ").values
+    match = nil
 
-    # get provider data
-    @provider_data = { provider_name: provider["Name"], street_address: provider_address["StreetAddress"], city: provider_address["City"], state: provider_address["State"], zip: provider_address["Zip"], county: provider_address["County"], country: provider_address["Country"], phone_number: provider["PhoneNumber"] }
+    if match_id.empty?
+      # checks for spelling errors
+      # needs additional logic to account for instances of multiple matches - persist to Redis db
+      model.all.each do |o|
+        mismatch_count = 0
+        to_compare = o[field].downcase.split('')
+        
+        term.downcase.split('').each_with_index do |l, i|
+          # accounts for missing letter or extra letter in string
+          mismatch_count += 1  if l != to_compare[i] && l != to_compare[i + 1] && l != to_compare[i - 1]
+        end
 
-    # get plan data
-    @plan_data = { provider_id: nil, plan_name: plan["Name"], id_type: plan["IDType"], plan_type: plan["Type"], provider_plan_id: plan["ID"]}
-    
-    # get group data
-    @group_data = { provider_id: nil, plan_id: nil, group_number: @payload["GroupNumber"], group_name: @payload["GroupName"] }
+        match = o if mismatch_count <= 1 || mismatch_count <= term.length / 10
+      end
+    else
+      match = model.find_by_id(match_id)
+    end
 
-    # get policy data, manipulate effective date and expiration date
-    effective_date = @payload["EffectiveDate"].nil? ? nil : @payload["EffectiveDate"].to_datetime
-    expiration_date = @payload["ExpirationDate"].nil? ? nil : @payload["ExpirationDate"].to_datetime
-
-    @policy_data = { group_id: nil, effective_date: effective_date, expiration_date: expiration_date, policy_number: @payload["PolicyNumber"] }
-
-    # get member data, encrypt SSN (coming), manipulate DOB
-    dob = member["DOB"].nil? ? nil : member["DOB"].to_datetime
-
-    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: @payload["MemberNumber"], first_name: member["FirstName"], last_name: member["LastName"], ssn_encrypted: member["SSN"], date_of_birth: dob, sex: member["Sex"], street_address: member_address["StreetAddress"], city: member_address["City"], state: member_address["State"], zip: member_address["Zip"], county: member_address["County"], country: member_address["Country"]}
+    match
   end
 
-  def create_or_update_provider
-    @provider = Provider.new
+  # creation methods
+  def create_or_get_provider
+    # removes any additional data separated by characters
+    name = @provider_data[:provider_name].split(/[^A-Za-z0-9 ]/).first.strip
+    @provider = Provider.find_by provider_name: name
+
+    if @provider.nil? || @provider == []
+      @provider = get_provider_with_spellcheck(name, "providers", "provider_name", Provider)
+    end
+
+    # if no provider found, creates new Provider
+    if @provider.nil? || @provider == []
+      @provider = Provider.create(@provider_data)
+    end 
+
+    @provider
   end
 
   def create_or_update_plan
@@ -88,5 +99,37 @@ class WebhookController < ApplicationController
 
   def create_or_update_member
     @member = Member.new
+  end
+
+
+
+  # handlers
+  def handle_redox_event
+    puts "handling redox event"
+    plan = @payload["Plan"]
+    provider = @payload["Company"]
+    provider_address = provider["Address"]
+    member = @payload["Insured"]
+    member_address = member["Address"]
+
+    # get provider data
+    @provider_data = { provider_name: provider["Name"], street_address: provider_address["StreetAddress"], city: provider_address["City"], state: provider_address["State"], zip: provider_address["ZIP"], county: provider_address["County"], country: provider_address["Country"], phone_number: provider["PhoneNumber"] }
+
+    # get plan data
+    @plan_data = { provider_id: nil, plan_name: plan["Name"], id_type: plan["IDType"], plan_type: plan["Type"], provider_plan_id: plan["ID"]}
+    
+    # get group data
+    @group_data = { provider_id: nil, plan_id: nil, group_number: @payload["GroupNumber"], group_name: @payload["GroupName"] }
+
+    # get policy data, manipulate effective date and expiration date
+    effective_date = @payload["EffectiveDate"].nil? ? nil : @payload["EffectiveDate"].to_datetime
+    expiration_date = @payload["ExpirationDate"].nil? ? nil : @payload["ExpirationDate"].to_datetime
+
+    @policy_data = { group_id: nil, effective_date: effective_date, expiration_date: expiration_date, policy_number: @payload["PolicyNumber"] }
+
+    # get member data, encrypt SSN (encryption mechanism needed), manipulate DOB
+    dob = member["DOB"].nil? ? nil : member["DOB"].to_datetime
+
+    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: @payload["MemberNumber"], first_name: member["FirstName"], last_name: member["LastName"], ssn_encrypted: member["SSN"], date_of_birth: dob, sex: member["Sex"], street_address: member_address["StreetAddress"], city: member_address["City"], state: member_address["State"], zip: member_address["ZIP"], county: member_address["County"], country: member_address["Country"]}
   end
 end
