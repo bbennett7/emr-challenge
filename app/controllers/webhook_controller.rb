@@ -2,28 +2,30 @@ class WebhookController < ApplicationController
   skip_before_action :verify_authenticity_token
 
   def gateway
-    source = request.headers['Source']
+    @source = request.headers['Source']
     @payload = JSON.parse(request.body.string)
 
     # default structure of objects to build for db persistence 
     @provider_data = { provider_name: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil, phone_number: nil }
 
-    @plan_data = { provider_id: nil, plan_name: nil, id_type: nil, plan_type: nil, provider_plan_id: nil}
+    @plan_data = { provider_id: nil, plan_name: nil, plan_type: nil }
 
     @group_data = { provider_id: nil, plan_id: nil, group_number: nil, group_name: nil }
 
     @policy_data = { group_id: nil, effective_date: nil, expiration_date: nil, policy_number: nil }
 
-    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: nil, first_name: nil, last_name: nil, ssn_encrypted: nil, date_of_birth: nil, sex: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil}
+    @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: nil, first_name: nil, last_name: nil, ssn_encrypted: nil, date_of_birth: nil, sex: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil }
+
+    # @plan_mapper = {plan_id: null, provider_id: 1, source_name: "redox", source_plan_name: "Deductible Plan", source_plan_id: "12345"}
 
     # switch case determines where post request is coming from, calls handler based on source
-    case source.downcase
+    case @source.downcase
       when "redox"
         handle_redox_event
-      when "providence healthcare"
-        puts "providence healthcare"
-      when "abm healthcare"
-        puts "abm healthcare"
+      when "providence health"
+        handle_providence_event
+      when "abm health"
+        puts "abm health"
       else
         # persists to a redis database of pending data
     end
@@ -115,19 +117,24 @@ class WebhookController < ApplicationController
   end
 
   def create_or_get_plan
-    name = @plan_data[:plan_name].split(/[^A-Za-z0-9 ]/).first.strip
-    @plan = Plan.find_by plan_name: name 
+    @plan_mapper = PlanMapper.find_by source_name: @source, source_plan_name: @plan_data[:plan_name], source_plan_id: @plan_data[:source_plan_id]
 
-    and_statement = "provider_id = #{@plan_data[:provider_id]} AND "
+    and_statement = "source_name = '#{@source}' AND "
 
-    if @plan.nil? || @plan == [] || @plan[:provider_id] != @provider[:id]
-      @plan = get_object_with_spellcheck(name, "plans", "plan_name", Plan, and_statement)
+    if @plan_mapper.nil? || @plan_mapper == []
+      @plan_mapper = get_object_with_spellcheck(@plan_data[:plan_name], "plan_mappers", "source_plan_name", PlanMapper, and_statement)
     end 
 
-    if @plan.nil? || @plan == []
+    if @plan_mapper.nil? || @plan_mapper == []
+      source_plan_id = @plan_data[:source_plan_id]
+      @plan_data.delete(:source_plan_id)
+
       @plan = Plan.create(@plan_data)
+
+      @plan_mapper = PlanMapper.create(plan_id: @plan[:id], provider_id: @provider[:id], source_name: @source, source_plan_name: @plan_data[:plan_name], source_plan_id: source_plan_id)
     end
 
+    @plan = Plan.find_by_id(@plan_mapper[:plan_id])
     @plan
   end
 
@@ -187,7 +194,7 @@ class WebhookController < ApplicationController
     @provider_data = { provider_name: provider["Name"], street_address: provider_address["StreetAddress"], city: provider_address["City"], state: provider_address["State"], zip: provider_address["ZIP"], county: provider_address["County"], country: provider_address["Country"], phone_number: provider["PhoneNumber"] }
 
     # get plan data
-    @plan_data = { provider_id: nil, plan_name: plan["Name"], id_type: plan["IDType"], plan_type: plan["Type"], provider_plan_id: plan["ID"]}
+    @plan_data = { provider_id: nil, plan_name: plan["Name"], plan_type: plan["Type"], source_plan_id: plan["ID"] }
     
     # get group data
     @group_data = { provider_id: nil, plan_id: nil, group_number: @payload["GroupNumber"], group_name: @payload["GroupName"] }
@@ -202,5 +209,10 @@ class WebhookController < ApplicationController
     dob = member["DOB"].nil? ? nil : member["DOB"].to_datetime
 
     @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: @payload["MemberNumber"], first_name: member["FirstName"], last_name: member["LastName"], ssn_encrypted: member["SSN"], date_of_birth: dob, sex: member["Sex"], street_address: member_address["StreetAddress"], city: member_address["City"], state: member_address["State"], zip: member_address["ZIP"], county: member_address["County"], country: member_address["Country"]}
+  end
+
+  def handle_providence_event
+    puts "handling providence event"
+
   end
 end
