@@ -25,7 +25,13 @@ class WebhookController < ApplicationController
       when "abm health"
         handle_abm_event
       else
-        # persists to a redis database of pending data
+        respond_to do |format|
+          res = { :status => 500, :data => {
+            :error =>  "No handler available to handle events from specified source."
+          } }
+          format.json { render json: res}
+        end
+      return 
     end
 
     @new_provider = create_or_get_provider
@@ -50,8 +56,6 @@ class WebhookController < ApplicationController
       @new_member = @member_data
     end 
 
-    byebug 
-
     respond_to do |format|
       res = { :status => 200, :data => {
         :provider =>  @new_provider,
@@ -64,7 +68,7 @@ class WebhookController < ApplicationController
     end
   end
 
-  # returns id of matching object, accounting for nicknames and typos
+  # returns matching object, accounting for nicknames and typos
   def get_object_with_spellcheck(term, table, field, model, and_statement)
     match_id = ActiveRecord::Base.connection.execute("SELECT id FROM #{table} WHERE #{and_statement} (#{field} ILIKE '%#{term}' OR #{field} ILIKE '#{term}%')").values
     match = nil
@@ -81,7 +85,7 @@ class WebhookController < ApplicationController
             # accounts for missing letter or extra letter in string
             mismatch_count += 1  if l != to_compare[i] && l != to_compare[i + 1] && l != to_compare[i - 1]
           end
-  
+
           # allows for one letter difference out of every 10 letters in length
           match = o if mismatch_count <= 1 || mismatch_count <= term.length / 10
         end
@@ -95,7 +99,7 @@ class WebhookController < ApplicationController
 
 
 
-  # CREATION METHODS
+  # CREATE OR GET METHODS
   def create_or_get_provider
     # removes any additional data separated by characters
     name = @provider_data[:provider_name].split(/[^A-Za-z0-9 ]/).first.strip
@@ -157,7 +161,6 @@ class WebhookController < ApplicationController
     number = @policy_data[:policy_number]
     @policy = Policy.find_by policy_number: number, group_id: @policy_data[:group_id]
 
-    byebug
     if @policy.nil? || @policy == [] 
       @policy = Policy.create(@policy_data)
     end
