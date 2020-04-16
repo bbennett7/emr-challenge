@@ -23,7 +23,7 @@ class WebhookController < ApplicationController
       when "providence health"
         handle_providence_event
       when "abm health"
-        puts "abm health"
+        handle_abm_event
       else
         # persists to a redis database of pending data
     end
@@ -157,6 +157,7 @@ class WebhookController < ApplicationController
     number = @policy_data[:policy_number]
     @policy = Policy.find_by policy_number: number, group_id: @policy_data[:group_id]
 
+    byebug
     if @policy.nil? || @policy == [] 
       @policy = Policy.create(@policy_data)
     end
@@ -171,7 +172,11 @@ class WebhookController < ApplicationController
     and_statement = "member_number = #{@member_data[:member_number]} AND provider_id = #{@member_data[:provider_id]} AND "
 
     if @member.nil? || @member == []
-      @member = get_object_with_spellcheck(ssn_encrypted, "member", "ssn_encrypted", Member, and_statement)
+      @member = get_object_with_spellcheck(ssn_encrypted, "members", "ssn_encrypted", Member, and_statement)
+    end
+
+    if @member.nil? || @member == []
+      @member = Member.create(@member_data)
     end
 
     @member
@@ -214,6 +219,7 @@ class WebhookController < ApplicationController
     @provider_data[:provider_name] = @payload["CompanyName"]
 
     @plan_data[:plan_name] = @payload["PlanName"]
+    @plan_data[:source_plan_id] = @payload["PlanID"]
 
     @group_data[:group_number] = @payload["GroupNumber"]
     @group_data[:group_name] = @payload["GroupName"]
@@ -226,4 +232,25 @@ class WebhookController < ApplicationController
     @member_data[:ssn_encrypted] = @payload["InsuredSSN"]
     @member_data[:date_of_birth] = @payload["InsuredDOB"].to_datetime
   end
+
+  def handle_abm_event
+    puts "handling abm event"
+    account = @payload["account"]
+
+    @provider_data[:provider_name] = @payload["provider_name"]
+
+    @plan_data[:plan_name] = @payload["plan_name"]
+    @plan_data[:source_plan_id] = @payload["plan_id"]
+
+    @group_data[:group_number] = @payload["group_number"]
+    @group_data[:group_name] = @payload["group_name"]
+
+    @policy_data[:policy_number] = account["policy_number"]
+
+    @member_data[:member_number] = account["account_number"]
+    @member_data[:first_name] = account["first"]
+    @member_data[:last_name] = account["last"]
+    @member_data[:ssn_encrypted] = account["ssn"]
+    @member_data[:date_of_birth] = account["date_of_birth"].to_datetime
+  end 
 end
