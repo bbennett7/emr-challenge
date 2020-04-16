@@ -16,8 +16,6 @@ class WebhookController < ApplicationController
 
     @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: nil, first_name: nil, last_name: nil, ssn_encrypted: nil, date_of_birth: nil, sex: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil }
 
-    # @plan_mapper = {plan_id: null, provider_id: 1, source_name: "redox", source_plan_name: "Deductible Plan", source_plan_id: "12345"}
-
     # switch case determines where post request is coming from, calls handler based on source
     case @source.downcase
       when "redox"
@@ -213,6 +211,19 @@ class WebhookController < ApplicationController
 
   def handle_providence_event
     puts "handling providence event"
+    @provider_data[:provider_name] = @payload["CompanyName"]
 
+    @plan_data[:plan_name] = @payload["PlanName"]
+
+    @group_data[:group_number] = @payload["GroupNumber"]
+    @group_data[:group_name] = @payload["GroupName"]
+
+    @policy_data[:policy_number] = @payload["PolicyNumber"]
+
+    @member_data[:member_number] = @payload["MemberNumber"]
+    @member_data[:first_name] = @payload["InsuredFirstName"]
+    @member_data[:last_name] = @payload["InsuredLastName"]
+    @member_data[:ssn_encrypted] = @payload["InsuredSSN"]
+    @member_data[:date_of_birth] = @payload["InsuredDOB"].to_datetime
   end
 end
