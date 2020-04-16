@@ -39,7 +39,17 @@ class WebhookController < ApplicationController
 
     @policy_data[:group_id] = @new_group[:id]
     @new_policy = create_or_get_policy
-    
+
+    if @member_data[:member_number] != nil 
+      @member_data[:provider_id] = @new_provider[:id]
+      @member_data[:plan_id] = @new_plan[:id]
+      @member_data[:group_id] = @new_group[:id]
+      @member_data[:policy_id] = @new_policy[:id]
+      @new_member = create_or_get_member
+    else 
+      @new_member = @member_data
+    end 
+
     byebug 
 
     respond_to do |format|
@@ -47,7 +57,8 @@ class WebhookController < ApplicationController
         :provider =>  @new_provider,
         :plan => @new_plan,
         :group => @new_group,
-        :policy => @new_policy
+        :policy => @new_policy,
+        :member => @new_member
       } }
       format.json { render json: res}
     end
@@ -149,7 +160,16 @@ class WebhookController < ApplicationController
   end
 
   def create_or_get_member
-    @member = Member.new
+    ssn_encrypted = @member_data[:ssn_encrypted]
+    @member = Member.find_by ssn_encrypted: ssn_encrypted
+
+    and_statement = "member_number = #{@member_data[:member_number]} AND provider_id = #{@member_data[:provider_id]} AND "
+
+    if @member.nil? || @member == []
+      @member = get_object_with_spellcheck(ssn_encrypted, "member", "ssn_encrypted", Member, and_statement)
+    end
+
+    @member
   end
 
 
