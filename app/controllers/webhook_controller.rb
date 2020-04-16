@@ -16,8 +16,7 @@ class WebhookController < ApplicationController
 
     @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: nil, first_name: nil, last_name: nil, ssn_encrypted: nil, date_of_birth: nil, sex: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil}
 
-    # switch case determines where post request is coming from
-    # calls handler based on source
+    # switch case determines where post request is coming from, calls handler based on source
     case source.downcase
       when "redox"
         handle_redox_event
@@ -37,6 +36,9 @@ class WebhookController < ApplicationController
     @group_data[:provider_id] = @new_provider[:id]
     @group_data[:plan_id] = @new_plan[:id]
     @new_group = create_or_get_group
+
+    @policy_data[:group_id] = @new_group[:id]
+    @new_policy = create_or_get_policy
     
     byebug 
     # respond_to do |format|
@@ -75,7 +77,8 @@ class WebhookController < ApplicationController
   end
 
 
-  # creation methods
+
+  # CREATION METHODS
   def create_or_get_provider
     # removes any additional data separated by characters
     name = @provider_data[:provider_name].split(/[^A-Za-z0-9 ]/).first.strip
@@ -129,7 +132,14 @@ class WebhookController < ApplicationController
   end
   
   def create_or_get_policy
-    @policy = Policy.new
+    number = @policy_data[:policy_number]
+    @policy = Policy.find_by policy_number: number, group_id: @policy_data[:group_id]
+
+    if @policy.nil? || @policy == [] 
+      @policy = Policy.create(@policy_data)
+    end
+
+    @policy
   end
 
   def create_or_get_member
@@ -138,7 +148,7 @@ class WebhookController < ApplicationController
 
 
 
-  # handlers
+  # SOURCE HANDLERS
   def handle_redox_event
     puts "handling redox event"
     plan = @payload["Plan"]
