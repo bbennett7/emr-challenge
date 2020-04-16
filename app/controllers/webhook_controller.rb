@@ -32,9 +32,11 @@ class WebhookController < ApplicationController
         # persists to a redis database of pending data
     end
 
-    # Will need to handle getting relations - like provider ID for plan's provider_id
     @new_provider = create_or_get_provider
 
+    @plan_data[:provider_id] = @new_provider[:id]
+    @new_plan = create_or_get_plan
+    
     # respond_to do |format|
     #   msg = { :status => "ok", :message => "Success!" }
     #   format.json { render json: request}
@@ -42,23 +44,25 @@ class WebhookController < ApplicationController
   end
 
   # returns id of similar object, accounting for nicknames and typos
-  def get_provider_with_spellcheck(term, table, field, model)
-    match_id = ActiveRecord::Base.connection.execute("SELECT id FROM #{table} WHERE #{field} ILIKE '%#{term}' OR #{field} ILIKE '#{term}%' ").values
+  def get_object_with_spellcheck(term, table, field, model, and_statement)
+    match_id = ActiveRecord::Base.connection.execute("SELECT id FROM #{table} WHERE #{and_statement} (#{field} ILIKE '%#{term}' OR #{field} ILIKE '#{term}%')").values
     match = nil
 
     if match_id.empty?
       # checks for spelling errors
       # needs additional logic to account for instances of multiple matches - persist to Redis db
       model.all.each do |o|
-        mismatch_count = 0
-        to_compare = o[field].downcase.split('')
-        
-        term.downcase.split('').each_with_index do |l, i|
-          # accounts for missing letter or extra letter in string
-          mismatch_count += 1  if l != to_compare[i] && l != to_compare[i + 1] && l != to_compare[i - 1]
+        if o[:provider_id] == @plan_data[:provider_id]
+          mismatch_count = 0
+          to_compare = o[field].downcase.split('')
+          
+          term.downcase.split('').each_with_index do |l, i|
+            # accounts for missing letter or extra letter in string
+            mismatch_count += 1  if l != to_compare[i] && l != to_compare[i + 1] && l != to_compare[i - 1]
+          end
+  
+          match = o if mismatch_count <= 1 || mismatch_count <= term.length / 10
         end
-
-        match = o if mismatch_count <= 1 || mismatch_count <= term.length / 10
       end
     else
       match = model.find_by_id(match_id)
@@ -73,8 +77,9 @@ class WebhookController < ApplicationController
     name = @provider_data[:provider_name].split(/[^A-Za-z0-9 ]/).first.strip
     @provider = Provider.find_by provider_name: name
 
+    #if no exact match, checks for match account for spelling errors
     if @provider.nil? || @provider == []
-      @provider = get_provider_with_spellcheck(name, "providers", "provider_name", Provider)
+      @provider = get_object_with_spellcheck(name, "providers", "provider_name", Provider, '')
     end
 
     # if no provider found, creates new Provider
@@ -85,19 +90,32 @@ class WebhookController < ApplicationController
     @provider
   end
 
-  def create_or_update_plan
-    @plan = Plan.new
+  def create_or_get_plan
+    name = @plan_data[:plan_name].split(/[^A-Za-z0-9 ]/).first.strip
+    @plan = Plan.find_by plan_name: name 
+
+    and_statement = "provider_id = #{@plan_data[:provider_id]} AND "
+
+    if @plan.nil? || @plan == [] || @plan[:provider_id] != @provider[:id]
+      @plan = get_object_with_spellcheck(name, "plans", "plan_name", Plan, and_statement)
+    end 
+
+    if @plan.nil? || @plan == []
+      @plan = Plan.create(@plan_data)
+    end
+
+    @plan
   end
 
-  def create_or_update_group
+  def create_or_get_group
     @group = Group.new
   end
   
-  def create_or_update_policy
+  def create_or_get_policy
     @policy = Policy.new
   end
 
-  def create_or_update_member
+  def create_or_get_member
     @member = Member.new
   end
 
