@@ -9,6 +9,7 @@ class CreateProviders < ActiveRecord::Migration[6.0]
       t.string :county
       t.string :country
       t.string :phone_number
+      t.boolean :approved, default: false
 
       t.timestamps
     end

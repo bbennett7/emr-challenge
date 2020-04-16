@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_04_14_230903) do
+ActiveRecord::Schema.define(version: 2020_04_16_182306) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -45,12 +45,21 @@ ActiveRecord::Schema.define(version: 2020_04_14_230903) do
     t.datetime "updated_at", precision: 6, null: false
   end
 
+  create_table "plan_mappers", force: :cascade do |t|
+    t.integer "plan_id", null: false
+    t.integer "provider_id", null: false
+    t.string "source_name", null: false
+    t.string "source_plan_name", null: false
+    t.string "source_plan_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
   create_table "plans", force: :cascade do |t|
     t.integer "provider_id", null: false
     t.string "plan_name", null: false
-    t.string "id_type"
     t.string "plan_type"
-    t.string "provider_plan_id", null: false
+    t.boolean "approved", default: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
   end
@@ -73,6 +82,7 @@ ActiveRecord::Schema.define(version: 2020_04_14_230903) do
     t.string "county"
     t.string "country"
     t.string "phone_number"
+    t.boolean "approved", default: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
   end
