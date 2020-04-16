@@ -18,7 +18,7 @@ ActiveRecord::Schema.define(version: 2020_04_16_182306) do
   create_table "groups", force: :cascade do |t|
     t.integer "provider_id", null: false
     t.integer "plan_id"
-    t.integer "group_number", null: false
+    t.string "group_number", null: false
     t.string "group_name", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
@@ -32,7 +32,7 @@ ActiveRecord::Schema.define(version: 2020_04_16_182306) do
     t.integer "member_number", null: false
     t.string "first_name", null: false
     t.string "last_name", null: false
-    t.string "ssn_encrypted"
+    t.string "ssn_encrypted", null: false
     t.datetime "date_of_birth"
     t.boolean "sex"
     t.string "street_address"
@@ -66,8 +66,8 @@ ActiveRecord::Schema.define(version: 2020_04_16_182306) do
 
   create_table "policies", force: :cascade do |t|
     t.integer "group_id", null: false
-    t.datetime "effective_date", null: false
-    t.datetime "expiration_date", null: false
+    t.datetime "effective_date"
+    t.datetime "expiration_date"
     t.integer "policy_number", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false

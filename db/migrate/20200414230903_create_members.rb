@@ -8,7 +8,7 @@ class CreateMembers < ActiveRecord::Migration[6.0]
       t.integer :member_number, null: false
       t.string :first_name, null: false
       t.string :last_name, null: false
-      t.string :ssn_encrypted
+      t.string :ssn_encrypted, null: false
       t.timestamp :date_of_birth
       t.boolean :sex
       t.string :street_address

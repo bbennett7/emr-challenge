@@ -3,7 +3,7 @@ class CreateGroups < ActiveRecord::Migration[6.0]
     create_table :groups do |t|
       t.integer :provider_id, null: false
       t.integer :plan_id
-      t.integer :group_number, null: false
+      t.string :group_number, null: false
       t.string :group_name, null: false
 
       t.timestamps
