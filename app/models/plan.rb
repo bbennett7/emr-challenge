@@ -6,5 +6,4 @@ class Plan < ApplicationRecord
 
   validates :provider_id, presence: { message: 'cannot be blank.' }
   validates :plan_name, presence: { message: 'cannot be blank.' }
-  validates :provider_plan_id, presence: { message: 'cannot be blank.' }
 end
