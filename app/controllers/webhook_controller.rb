@@ -2,7 +2,6 @@ class WebhookController < ApplicationController
   skip_before_action :verify_authenticity_token
 
   def gateway
-    # byebug
     source = request.headers['Source']
     @payload = JSON.parse(request.body.string)
 
@@ -17,13 +16,11 @@ class WebhookController < ApplicationController
 
     @member_data = { policy_id: nil, group_id: nil, plan_id: nil, provider_id: nil, member_number: nil, first_name: nil, last_name: nil, ssn_encrypted: nil, date_of_birth: nil, sex: nil, street_address: nil, city: nil, state: nil, zip: nil, county: nil, country: nil}
 
-    # switch case to determine where post request is coming from
-    # call handler based on source
+    # switch case determines where post request is coming from
+    # calls handler based on source
     case source.downcase
       when "redox"
         handle_redox_event
-      when "cedar sanai"
-        puts "cedar sanai"
       when "providence healthcare"
         puts "providence healthcare"
       when "abm healthcare"
@@ -36,14 +33,19 @@ class WebhookController < ApplicationController
 
     @plan_data[:provider_id] = @new_provider[:id]
     @new_plan = create_or_get_plan
+
+    @group_data[:provider_id] = @new_provider[:id]
+    @group_data[:plan_id] = @new_plan[:id]
+    @new_group = create_or_get_group
     
+    byebug 
     # respond_to do |format|
     #   msg = { :status => "ok", :message => "Success!" }
     #   format.json { render json: request}
     # end
   end
 
-  # returns id of similar object, accounting for nicknames and typos
+  # returns id of matching object, accounting for nicknames and typos
   def get_object_with_spellcheck(term, table, field, model, and_statement)
     match_id = ActiveRecord::Base.connection.execute("SELECT id FROM #{table} WHERE #{and_statement} (#{field} ILIKE '%#{term}' OR #{field} ILIKE '#{term}%')").values
     match = nil
@@ -61,6 +63,7 @@ class WebhookController < ApplicationController
             mismatch_count += 1  if l != to_compare[i] && l != to_compare[i + 1] && l != to_compare[i - 1]
           end
   
+          # allows for one letter difference out of every 10 letters in length
           match = o if mismatch_count <= 1 || mismatch_count <= term.length / 10
         end
       end
@@ -71,13 +74,14 @@ class WebhookController < ApplicationController
     match
   end
 
+
   # creation methods
   def create_or_get_provider
     # removes any additional data separated by characters
     name = @provider_data[:provider_name].split(/[^A-Za-z0-9 ]/).first.strip
     @provider = Provider.find_by provider_name: name
 
-    #if no exact match, checks for match account for spelling errors
+    #if no exact match, checks for match account with spelling errors
     if @provider.nil? || @provider == []
       @provider = get_object_with_spellcheck(name, "providers", "provider_name", Provider, '')
     end
@@ -108,7 +112,20 @@ class WebhookController < ApplicationController
   end
 
   def create_or_get_group
-    @group = Group.new
+    name = @group_data[:group_name].split(/[^A-Za-z0-9 ]/).first.strip
+    @group = Group.find_by group_name: name
+
+    and_statement = "provider_id = #{@plan_data[:provider_id]} AND "
+
+    if @group.nil? || @group == [] || @group[:provider_id] != @provider[:id]
+      @group = get_object_with_spellcheck(name, "groups", "group_name", Group, and_statement)
+    end
+
+    if @group.nil? || @group == []
+      @group = Group.create(@group_data)
+    end
+
+    @group
   end
   
   def create_or_get_policy
