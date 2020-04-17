@@ -17,6 +17,7 @@ module EmrChallenge
     # the framework and any gems in your application.
 
     config.assets.initialize_on_precompile = false
+    config.webpacker.check_yarn_integrity = false
 
     config.middleware.insert_before 0, Rack::Cors do
       allow do
