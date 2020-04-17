@@ -4,6 +4,8 @@ Rails.application.routes.draw do
   root to: 'application#root'
 
   post '/webhook-gateway', to: 'webhook#gateway'
+
+  get '/plans/pending', to: 'plans#get_pending_plans'
 end
 
 
