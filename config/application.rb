@@ -19,7 +19,7 @@ module EmrChallenge
     config.middleware.insert_before 0, Rack::Cors do
       allow do
         origins '*'
-        resource '*', headers: :any, methods: [:get, :put, :options]
+        resource '*', headers: :any, methods: [:get, :put, :delete, :options]
       end
     end
   end
