@@ -60,4 +60,15 @@ class PlansController < ApplicationController
       format.json { render json: res}
     end
   end
+
+  def delete_plan
+    id = params[:id]
+    plan = Plan.delete_by(id: id)
+
+    respond_to do |format|
+      res = { :plan =>  plan }
+      
+      format.json { render json: res}
+    end
+  end
 end
