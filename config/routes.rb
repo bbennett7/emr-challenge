@@ -8,6 +8,9 @@ Rails.application.routes.draw do
   get '/plans/pending', to: 'plans#get_pending_plans'
   get '/plans', to: 'plans#get_plans'
   put '/plans/:id', to: 'plans#update_plan'
+  delete '/plans/:id', to: 'plans#delete_plan'
+
+  put '/plan-mappers', to: 'plan_mappers#update_plan_mapper'
 end
 
 
