@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   post '/webhook-gateway', to: 'webhook#gateway'
 
   get '/plans/pending', to: 'plans#get_pending_plans'
+  get '/plans', to: 'plans#get_plans'
+  put '/plans/:id', to: 'plans#update_plan'
 end
 
 
