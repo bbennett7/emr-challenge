@@ -16,6 +16,8 @@ module EmrChallenge
     # -- all .rb files in that directory are automatically loaded after loading
     # the framework and any gems in your application.
 
+    config.assets.initialize_on_precompile = false
+
     config.middleware.insert_before 0, Rack::Cors do
       allow do
         origins '*'
